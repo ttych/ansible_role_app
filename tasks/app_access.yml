@@ -1,0 +1,8 @@
+---
+
+- name: add authorized_keys
+  authorized_key:
+    user: "{{ app_user | d(app_default_user) }}"
+    state: present
+    key: "{{ app_user_ssh_auth_key }}"
+  when: app_user_ssh_auth_key is defined

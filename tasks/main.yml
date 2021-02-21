@@ -17,6 +17,8 @@
 
     - include: app_workspace.yml
 
+    - include: app_access.yml
+
     - include: app_service.yml
 
   when: want_app
