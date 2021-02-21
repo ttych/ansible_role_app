@@ -1,2 +1,28 @@
 ---
-# defaults file for ansible_role_app
+
+app_user: "app_{{ app_name }}"
+
+app_sub_directories:
+  - path: "{{ app_user_homedir | d(app_default_user_homedir) }}"
+    mode: "{{ app_user_homedir_right | d('0755') }}"
+  - path: "{{ app_user_homedir | d(app_default_user_homedir) }}/.ssh"
+    mode: "0700"
+
+
+app_service_logger_user: logger
+
+app_service_script: app.sh
+
+app_daemontools_dir: "{{ app_base_dir }}/svscan_{{ app_name }}"
+
+app_daemontools_directories_template:
+  - { path: "", owner: root, group: "{{ root_group }}", mode: "0755" }
+  - { path: "/log", owner: root, group: "{{ root_group }}", mode: "0755" }
+  - { path: "/log/main", owner: "{{ app_service_logger_user }}", group: "{{ root_group }}", mode: "0755" }
+
+app_daemontools_scripts_template:
+  - { path: run, owner: root, group: "{{ root_group }}", mode: "0755" }
+  - { path: log/run, owner: root, group: "{{ root_group }}", mode: "0755" }
+
+
+root_group: root

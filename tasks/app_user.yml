@@ -1,0 +1,25 @@
+---
+
+- name: set default app user environment
+  set_fact:
+    app_default_user: "app_{{ app_name }}"
+    app_default_user_homedir: "{{ app_base_dir }}/{{ app_user_name | d('app_' + app_name) }}"
+    app_default_group: "app_{{ app_name }}"
+
+- block:
+    - include: accounts.yml
+      vars:
+        accounts_groups:
+          - name: "{{ app_group | d(app_default_group) }}"
+            gid: "{{ app_group_id | d(app_user_uid) }}"
+        accounts_users:
+          - name: "{{ app_user | d(app_default_user) }}"
+            comment: "{{ app_user | d(app_default_user) }}"
+            group: "{{ app_group | d(app_default_group) }}"
+            home: "{{ app_user_homedir | d(app_default_user_homedir) }}"
+            shell: "{{ app_user_shell | d('/bin/sh') }}"
+            uid: "{{ app_user_uid }}"
+            home_mode: "{{ app_user_homedir_right | d('0755') }}"
+            password: '*'
+
+  when: app_user_uid is defined

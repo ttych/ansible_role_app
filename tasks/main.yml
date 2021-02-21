@@ -1,2 +1,33 @@
 ---
-# tasks file for ansible_role_app
+
+- name: compute want_app
+  set_fact:
+    want_app: "{{ lookup('vars', 'want_app_' + app_name, default=false) }}"
+
+- debug:
+    msg: "want_app: {{ want_app }}"
+
+- block:
+
+    - include: context.yml
+
+    - include: app_user.yml
+
+    - include: app_packages.yml
+
+    - include: app_workspace.yml
+
+    - include: app_service.yml
+
+  when: want_app
+
+- name: "set has_app_{{ app_name }}"
+  set_fact:
+    "has_app_{{ app_name }}": "{{ want_app }}"
+
+- debug:
+    msg: "has_app_{{ app_name }}: {{ lookup('vars', 'has_app_' + app_name) }}"
+
+
+- debug:
+    msg: "=================================================="
