@@ -4,4 +4,4 @@ exec 2>&1
 
 exec setuidgid "{{ app_user }}" \
      env HOME="{{ app_user_homedir | d(app_default_user_homedir) }}" \
-     "{{ app_user_homedir | d(app_default_user_homedir) }}/{{ app_service_script }}" start
+     "{{ app_user_homedir | d(app_default_user_homedir) }}/{{ app_service_script }}" {{ app_service_script_args }}

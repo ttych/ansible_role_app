@@ -12,6 +12,7 @@ app_sub_directories:
 app_service_logger_user: logger
 
 app_service_script: app.sh
+app_service_script_args:
 
 app_daemontools_dir: "{{ app_base_dir }}/svscan_{{ app_name }}"
 
