@@ -19,11 +19,12 @@ app_daemontools_dir: "{{ app_base_dir }}/svscan_{{ app_name }}"
 app_daemontools_directories_template:
   - { path: "", owner: root, group: "{{ root_group }}", mode: "0755" }
   - { path: "/log", owner: root, group: "{{ root_group }}", mode: "0755" }
-  - { path: "/log/main", owner: "{{ app_service_logger_user }}", group: "{{ root_group }}", mode: "0755" }
+  - { path: "/log/main", owner: "{{ app_service_logger_user }}", group: "{{ root_group }}", mode: "0750" }
 
 app_daemontools_scripts_template:
-  - { path: run, owner: root, group: "{{ root_group }}", mode: "0755" }
-  - { path: log/run, owner: root, group: "{{ root_group }}", mode: "0755" }
+  - { path: run, owner: root, group: "{{ root_group }}", mode: "0750" }
+  - { path: log/run, owner: root, group: "{{ root_group }}", mode: "0750" }
 
+app_nginx: no
 
 root_group: root

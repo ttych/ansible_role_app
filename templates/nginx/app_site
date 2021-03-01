@@ -1,0 +1,45 @@
+
+upstream app_{{ app_name }}_backend {
+{% if app_listen is defined and app_listen.unix is defined %}
+   server unix://{{ app_user_homedir|d(app_default_user_homedir) }}/{{ app_listen.unix }} fail_timeout=0;
+{% endif %}
+}
+
+server {
+    listen {{ app_nginx_listen.port|d(80) }};
+    server_name {{ app_nginx_listen.name|d('localhost') }};
+
+{% if app_nginx_listen.public is defined %}
+    root {{ app_user_homedir|d(app_default_user_homedir) }}/{{ app_nginx_listen.public }};
+{% endif %}
+
+#     if ($http_transfer_encoding ~* chunked) {
+#         return 444;
+#     }
+
+    location / {
+      try_files $uri/index.html $uri @app_{{ app_name }}_backend;
+    }
+    # try_files $uri/index.html $uri @app_{{ app_name }}_backend;
+    # index index.html index.htm;
+
+    location ^~ /assets/ {
+        gzip_static on;
+        expires max;
+        add_header Cache-Control public;
+    }
+
+    location @app_{{ app_name }}_backend {
+        proxy_pass http://app_{{ app_name }}_backend;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+    }
+
+    access_log {{ nginx_base_dir }}/log/app_{{ app_name }}.access.log;
+    error_log {{ nginx_base_dir }}/log/app_{{ app_name }}.error.log info;
+
+    error_page 500 502 503 504 /500.html;
+    client_max_body_size 4G;
+    keepalive_timeout 10;
+}

@@ -1,0 +1,41 @@
+---
+
+- block:
+    - name: nginx workspace
+      file:
+        path: "{{ nginx_base_dir }}/{{ item }}"
+        state: directory
+      loop:
+        - etc
+        - etc/sites-available
+        - etc/sites-enabled
+
+    - name: define application site
+      template:
+        src: "nginx/app_site"
+        dest: "{{ nginx_base_dir }}/etc/sites-available/app_{{ app_name }}"
+        owner: root
+        group: "{{ root_group }}"
+        mode: "0644"
+      register: t_app_nginx_site_available
+
+    - name: enable application site
+      file:
+        src: "{{ nginx_base_dir }}/etc/sites-available/app_{{ app_name }}"
+        dest: "{{ nginx_base_dir }}/etc/sites-enabled/app_{{ app_name }}"
+        state: link
+      register: t_app_nginx_site_enabled
+
+    - name: look for nginx pid
+      stat:
+        path: "{{ nginx_base_dir }}/work/nginx.pid"
+      register: t_app_nginx_pidfile
+
+    - name: send reload signal
+      command: "pkill -HUP -F {{ t_app_nginx_pidfile.stat.path }}"
+      when:
+        - t_app_nginx_pidfile.stat.exists
+        - t_app_nginx_site_available.changed
+        - t_app_nginx_site_enabled.changed
+
+  when: app_nginx_listen is defined
