@@ -7,7 +7,7 @@ upstream app_{{ app_name }}_backend {
 
 server {
     listen {{ app_nginx_listen.port|d(80) }};
-    server_name {{ app_nginx_listen.name|d('localhost') }};
+    server_name {{ app_nginx_listen.name | d(['localhost']) | join(' ') }};
 
 {% if app_nginx_listen.public is defined %}
     root {{ app_user_homedir|d(app_default_user_homedir) }}/{{ app_nginx_listen.public }};
