@@ -18,6 +18,8 @@
 
     - include: app_nginx.yml
 
+    - include: app_db.yml
+
     - include: app_service.yml
 
   when: want_app

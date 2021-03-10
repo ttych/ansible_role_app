@@ -1,0 +1,55 @@
+---
+
+- block:
+    - name: define app_db_user
+      set_fact:
+        app_db_user: "{{ app_db.user | d(app_user) }}"
+        app_db_db: "{{ app_db.db | d(app_user) }}"
+
+    - name: "test if {{ app_db_user }} postgresql user exists"
+      shell: psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ app_db_user }}'" | grep 1
+      changed_when: no
+      failed_when: no
+      become: yes
+      become_user: "{{ app_postgresql_owner }}"
+      register: t_app_postgresql_user_exists
+
+    - block:
+        - name: "create {{ app_db_user }} postgresql user"
+          command: psql -d template1 -c "CREATE USER {{ app_db_user }} CREATEDB;"
+
+        - name: add pg_trgm extension
+          command: psql -d template1 -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+      become: yes
+      become_user: "{{ app_postgresql_owner }}"
+      when: t_app_postgresql_user_exists.rc != 0
+
+    - name: "test if {{ app_db_db }} db exist"
+      shell: psql -lqt | cut -d \| -f 1 | grep -qw "{{ app_db_db }}"
+      changed_when: no
+      failed_when: no
+      become: yes
+      become_user: "{{ app_postgresql_owner }}"
+      register: t_app_postgresql_db_exists
+
+    - name: "create {{ app_db_db }} database"
+      command: psql -d template1 -c "CREATE DATABASE {{ app_db_db }} OWNER {{ app_db_user }};"
+      become: yes
+      become_user: "{{ app_postgresql_owner }}"
+      when: t_app_postgresql_db_exists.rc != 0
+
+    - name: test connection to db with user
+      command: psql --username "{{ app_db_user }}" --dbname "{{ app_db_db }}"
+      changed_when: no
+      become: yes
+      become_user: "{{ app_user }}"
+      register: t_app_postgresql_connection_status
+
+    - name: test if pg_trgm is enabled
+      shell: psql --username "{{  app_db_user }}" --dbname "{{ app_db_db }}" -tAc "SELECT true AS enabled FROM pg_available_extensions WHERE name = 'pg_trgm' AND installed_version IS NOT NULL;" | grep -qw t
+      changed_when: no
+      become: yes
+      become_user: "{{ app_user }}"
+      register: t_app_postgresql_trgm_status
+
+  when: app_db is defined and app_db.type == 'postgresql'

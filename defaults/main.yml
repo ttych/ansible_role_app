@@ -27,4 +27,6 @@ app_daemontools_scripts_template:
 
 app_nginx: no
 
+app_postgresql_owner: postgres
+
 root_group: root
