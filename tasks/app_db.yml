@@ -8,6 +8,8 @@
 
     - name: "test if {{ app_db_user }} postgresql user exists"
       shell: psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ app_db_user }}'" | grep 1
+      environment:
+        PGHOST: "{{ app_db.hostname | d(omit) }}"
       changed_when: no
       failed_when: no
       become: yes
@@ -17,20 +19,29 @@
     - block:
         - name: "create {{ app_db_user }} postgresql role with password"
           command: psql -d template1 -c "CREATE USER {{ app_db_user }} PASSWORD '{{ app_db.password }}' NOSUPERUSER CREATEDB CREATEROLE INHERIT;"
+          environment:
+            PGHOST: "{{ app_db.hostname | d(omit) }}"
           when: app_db.password is defined and app_db.password != ""
 
         - name: "create {{ app_db_user }} postgresql role"
           command: psql -d template1 -c "CREATE USER {{ app_db_user }} NOSUPERUSER CREATEDB CREATEROLE INHERIT;"
+          environment:
+            PGHOST: "{{ app_db.hostname | d(omit) }}"
           when: app_db.password is not defined or app_db.password == ""
 
         - name: add pg_trgm extension
           command: psql -d template1 -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+          environment:
+            PGHOST: "{{ app_db.hostname | d(omit) }}"
+
       become: yes
       become_user: "{{ app_postgresql_owner }}"
       when: t_app_postgresql_user_exists.rc != 0
 
     - name: "test if {{ app_db_db }} db exist"
       shell: psql -lqt | cut -d \| -f 1 | grep -qw "{{ app_db_db }}"
+      environment:
+        PGHOST: "{{ app_db.hostname | d(omit) }}"
       changed_when: no
       failed_when: no
       become: yes
@@ -39,6 +50,8 @@
 
     - name: "create {{ app_db_db }} database"
       command: psql -d template1 -c "CREATE DATABASE {{ app_db_db }} OWNER {{ app_db_user }};"
+      environment:
+        PGHOST: "{{ app_db.hostname | d(omit) }}"
       become: yes
       become_user: "{{ app_postgresql_owner }}"
       when: t_app_postgresql_db_exists.rc != 0
@@ -46,6 +59,7 @@
     - name: test connection to db with user
       command: psql --username "{{ app_db_user }}" --dbname "{{ app_db_db }}"
       environment:
+        PGHOST: "{{ app_db.hostname | d(omit) }}"
         PGPASSWORD: "{{ app_db.password | d(omit) }}"
       changed_when: no
       become: yes
@@ -55,6 +69,7 @@
     - name: test if pg_trgm is enabled
       shell: psql --username "{{  app_db_user }}" --dbname "{{ app_db_db }}" -tAc "SELECT true AS enabled FROM pg_available_extensions WHERE name = 'pg_trgm' AND installed_version IS NOT NULL;" | grep -qw t
       environment:
+        PGHOST: "{{ app_db.hostname | d(omit) }}"
         PGPASSWORD: "{{ app_db.password | d(omit) }}"
       changed_when: no
       become: yes
