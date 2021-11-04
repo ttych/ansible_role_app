@@ -1,32 +1,51 @@
 ---
 
-app_user: "app_{{ app_name }}"
+app_name_full: "app_{{ app_name }}"
+app_dir: "{{ app_base_dir }}/{{ app_name_full }}"
+app_dir_zfs_properties:
+  setuid: off
+  compression: "lz4"
+  sharenfs: off
+  sharesmb: off
+app_dir_permissions: '0750'
+app_dir_owner: root
+
+app_group: "{{ app_name_full }}"
+app_user: "{{ app_name_full }}"
+app_user_homedir: "{{ app_dir }}/{{ app_user }}"
+
+app_user_run: "{{ app_name_full }}_r"
+app_user_run_homedir: "{{ app_dir }}/{{ app_user_run }}"
+app_user_run_want: yes
 
 app_sub_directories:
-  - path: "{{ app_user_homedir | d(app_default_user_homedir) }}"
+  - path: "{{ app_user_homedir }}"
     mode: "{{ app_user_homedir_right | d('0755') }}"
-  - path: "{{ app_user_homedir | d(app_default_user_homedir) }}/.ssh"
+  - path: "{{ app_user_homedir }}/.ssh"
+    mode: "0700"
+  - path: "{{ app_user_run_homedir }}"
+    mode: "{{ app_user_run_homedir_right | d('0755') }}"
+  - path: "{{ app_user_run_homedir }}/.ssh"
     mode: "0700"
 
+app_postgresql_owner: postgres
 
 app_service_logger_user: logger
-
 app_service_script: app.sh
 app_service_script_args:
 
-app_daemontools_dir: "{{ app_base_dir }}/svscan_{{ app_name }}"
-
+app_daemontools_dir: "{{ app_dir }}/svscan"
 app_daemontools_directories_template:
   - { path: "", owner: root, group: "{{ root_group }}", mode: "0755" }
   - { path: "/log", owner: root, group: "{{ root_group }}", mode: "0755" }
   - { path: "/log/main", owner: "{{ app_service_logger_user }}", group: "{{ root_group }}", mode: "0750" }
-
 app_daemontools_scripts_template:
   - { path: run, owner: root, group: "{{ root_group }}", mode: "0750" }
   - { path: log/run, owner: root, group: "{{ root_group }}", mode: "0750" }
 
 app_nginx: no
 
-app_postgresql_owner: postgres
-
 root_group: root
+
+sudoers_file: /etc/sudoers
+sudoers_d_dir: /etc/sudoers.d

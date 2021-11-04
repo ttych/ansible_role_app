@@ -49,4 +49,5 @@
         state: link
 
   when:
-    - (app_service|d('')) == 'daemontools'
+    - app_service|d(none)
+    - app_service.type|d(none) == 'daemontools'

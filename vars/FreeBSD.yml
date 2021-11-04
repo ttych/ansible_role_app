@@ -1,3 +1,6 @@
 ---
 
 root_group: wheel
+
+sudoers_file: /usr/local/etc/sudoers
+sudoers_d_dir: /usr/local/etc/sudoers.d

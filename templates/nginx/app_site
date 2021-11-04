@@ -1,45 +1,46 @@
-
-upstream app_{{ app_name }}_backend {
-{% if app_listen is defined and app_listen.unix is defined %}
-   server unix://{{ app_user_homedir|d(app_default_user_homedir) }}/{{ app_listen.unix }} fail_timeout=0;
-{% endif %}
+{% for upstream in app_nginx.upstreams|d([]) %}
+upstream {{ upstream.name }} {{ upstream.name_options|d('') }} {
+  {% for server in upstream.servers %}
+  server {{ server.socket }} {{ server.options|d([]) | join(' ') }};
+  {% endfor %}
+  {% for option in upstream.options|d([]) %}
+  {{ option }};
+  {% endfor %}
 }
+{% endfor %}
+
+limit_req_zone $binary_remote_addr zone={{ app_name_full }}_limit:10m rate=200r/s
 
 server {
-    listen {{ app_nginx_listen.port|d(80) }};
-    server_name {{ app_nginx_listen.name | d(['localhost']) | join(' ') }};
-
-{% if app_nginx_listen.public is defined %}
-    root {{ app_user_homedir|d(app_default_user_homedir) }}/{{ app_nginx_listen.public }};
-{% endif %}
+  {% for listen in app_nginx.listens|d([80]) %}
+    listen {{ listen }};
+  {% endfor %}
+    server_name {{ app_nginx.server_names|d(['localhost']) | join(' ') }};
+  {% if app_nginx.root %}
+    root {{ app_nginx.root }};
+  {% endif %}
 
 #     if ($http_transfer_encoding ~* chunked) {
 #         return 444;
 #     }
 
-    location / {
-      try_files $uri/index.html $uri @app_{{ app_name }}_backend;
+  {% for location in app_nginx.locations|d([]) %}
+    location {{ location.path }} {
+      {% for option in location.options | d([]) %}
+         {{ option }};
+      {% endfor %}
     }
-    # try_files $uri/index.html $uri @app_{{ app_name }}_backend;
-    # index index.html index.htm;
+  {% endfor %}
 
-    location ^~ /assets/ {
-        gzip_static on;
-        expires max;
-        add_header Cache-Control public;
-    }
+  {% for option in app_nginx.options|d([]) %}
+    {{ option }};
+  {% endfor %}
 
-    location @app_{{ app_name }}_backend {
-        proxy_pass http://app_{{ app_name }}_backend;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header Host $http_host;
-        proxy_redirect off;
-    }
-
-    access_log {{ nginx_base_dir }}/log/app_{{ app_name }}.access.log;
-    error_log {{ nginx_base_dir }}/log/app_{{ app_name }}.error.log info;
+    access_log {{ nginx_base_dir }}/log/{{ app_name_full }}.access.log;
+    error_log {{ nginx_base_dir }}/log/{{ app_name_full }}.error.log info;
 
     error_page 500 502 503 504 /500.html;
-    client_max_body_size 4G;
-    keepalive_timeout 10;
+
+    client_max_body_size {{ app_nginx.client_max_body_size | d("1G") }};
+    keepalive_timeout {{ app_nginx.keepalive_timeout | d(60) }};
 }

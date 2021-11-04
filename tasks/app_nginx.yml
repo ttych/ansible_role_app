@@ -38,4 +38,4 @@
         - t_app_nginx_site_available.changed
         - t_app_nginx_site_enabled.changed
 
-  when: app_nginx_listen is defined
+  when: app_nginx | d(none)

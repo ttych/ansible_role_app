@@ -2,6 +2,12 @@
 
 exec 2>&1
 
-exec setuidgid "{{ app_user }}" \
-     env HOME="{{ app_user_homedir | d(app_default_user_homedir) }}" \
-     "{{ app_user_homedir | d(app_default_user_homedir) }}/{{ app_service_script }}" {{ app_service_script_args }}
+exec setuidgid \
+{% if app_user_run_want %}
+     "{{ app_user_run }}" \
+     env HOME="{{ app_user_run_homedir }}" \
+{% else %}
+     "{{ app_user }}" \
+     env HOME="{{ app_user_homedir }}" \
+{% endif %}
+     "{{ app_user_homedir }}/{{ app_service.script }}" {{ app_service.script_args|d('') }}

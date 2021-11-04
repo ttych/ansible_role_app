@@ -1,0 +1,7 @@
+---
+
+- fail: msg="The variable 'app_name' is not defined"
+  when: app_name is undefined
+
+- fail: msg="The variable 'app_base_dir' is not defined"
+  when: app_base_dir is undefined
