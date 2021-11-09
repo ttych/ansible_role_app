@@ -30,15 +30,17 @@ app_sub_directories:
 
 app_postgresql_owner: postgres
 
-app_service_logger_user: logger
-app_service_script: app.sh
-app_service_script_args:
+app_service_default:
+  script: "{{ app_user_homedir }}/app.sh"
+  script_args: start_f
+  logger_user: logger
+app_service_merged: "{{ app_service_default | combine(app_service|d({})) }}"
 
 app_daemontools_dir: "{{ app_dir }}/svscan"
 app_daemontools_directories_template:
   - { path: "", owner: root, group: "{{ root_group }}", mode: "0755" }
   - { path: "/log", owner: root, group: "{{ root_group }}", mode: "0755" }
-  - { path: "/log/main", owner: "{{ app_service_logger_user }}", group: "{{ root_group }}", mode: "0750" }
+  - { path: "/log/main", owner: "{{ app_service_merged.logger_user }}", group: "{{ root_group }}", mode: "0750" }
 app_daemontools_scripts_template:
   - { path: run, owner: root, group: "{{ root_group }}", mode: "0750" }
   - { path: log/run, owner: root, group: "{{ root_group }}", mode: "0750" }

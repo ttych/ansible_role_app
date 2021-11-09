@@ -6,7 +6,8 @@
         msg: "configure systemd service"
 
   when:
-    - (app_service|d('')) == 'system'
+    - app_service_merged|d(none)
+    - app_service_merged.type|d(none) == 'system'
     - ansible_service_mgr == 'systemd'
 
 
@@ -17,7 +18,8 @@
         msg: "configure rc.d service"
 
   when:
-    - (app_service|d('')) == 'system'
+    - app_service_merged|d(none)
+    - app_service_merged.type|d(none) == 'system'
     - ansible_service_mgr == 'bsdinit'
 
 
@@ -49,5 +51,5 @@
         state: link
 
   when:
-    - app_service|d(none)
-    - app_service.type|d(none) == 'daemontools'
+    - app_service_merged|d(none)
+    - app_service_merged.type|d(none) == 'daemontools'
