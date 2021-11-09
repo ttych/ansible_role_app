@@ -31,6 +31,7 @@ app_sub_directories:
 app_postgresql_owner: postgres
 
 app_service_default:
+  type: no
   script: "{{ app_user_homedir }}/app.sh"
   script_args: start_f
   logger_user: logger
