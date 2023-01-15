@@ -23,7 +23,7 @@
     state: present
   loop: "{{ accounts_users }}"
 
-- name: add authorized_keys
+- name: add authorized_key
   authorized_key:
     user: "{{ item.name }}"
     state: present
@@ -31,6 +31,13 @@
   when: item.ssh_auth_key is defined and item.ssh_auth_key
   loop: "{{ accounts_users }}"
 
+- name: add authorized_keys
+  include_tasks: authorized_keys.yml
+  vars:
+    user: "{{ item.name }}"
+    keys: "{{ item.ssh_auth_keys }}"
+  when: item.ssh_auth_keys is defined and item.ssh_auth_keys
+  loop: "{{ accounts_users }}"
 
 - name: define shell environment files
   set_fact:

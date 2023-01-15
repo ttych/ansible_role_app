@@ -1,7 +1,7 @@
 ---
 
 - block:
-    - include: accounts.yml
+    - include_tasks: accounts.yml
       vars:
         accounts_groups:
           - name: "{{ app_group }}"
@@ -16,9 +16,10 @@
             home_mode: "{{ app_user_homedir_right | d('0750') }}"
             password: '*'
             ssh_auth_key: "{{ app_user_ssh_auth_key | d(None) }}"
+            ssh_auth_keys: "{{ app_user_ssh_auth_keys | d([]) }}"
 
 - block:
-    - include: accounts.yml
+    - include_tasks: accounts.yml
       vars:
         accounts_groups: []
         accounts_users:
@@ -31,6 +32,7 @@
             home_mode: "{{ app_user_run_homedir_right | d('0750') }}"
             password: '*'
             ssh_auth_key: "{{ app_user_run_ssh_auth_key | d(None) }}"
+            ssh_auth_keys: "{{ app_user_run_ssh_auth_keys | d([]) }}"
 
     - name: deploy sudo to run user
       template:

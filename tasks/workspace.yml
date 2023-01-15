@@ -9,4 +9,4 @@
     group: "{{ item.group | d(app_group) | d(app_default_group) }}"
     mode: "{{ item.mode | d(omit) }}"
     state: "{{ item.state|d('directory') }}"
-  loop: "{{ workspace_sub_directories }}"
+  loop: "{{ workspace_directories }}"

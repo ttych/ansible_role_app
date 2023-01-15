@@ -2,7 +2,7 @@
 
 - block:
     - name: "get associated dataset for {{ app_base_dir }}"
-      shell: zfs list | egrep '[[:blank:]]{{ app_base_dir }}$' | cut -d ' ' -f1
+      shell: zfs list -H "{{ app_base_dir }}" | awk '{print $1}'
       register: app_base_dir_dataset
       changed_when: False
 
@@ -13,13 +13,8 @@
             state: present
             extra_zfs_properties: "{{ app_dir_zfs_properties }}"
 
-        - name: set app_dir permissions
-          file:
-            path: "{{ app_dir }}"
-            owner: "{{ app_dir_owner }}"
-            group: "{{ app_group }}"
-            mode: "{{ app_dir_permissions }}"
-
-      when: app_base_dir_dataset.stdout != ""
+      when:
+        - app_base_dir_dataset.rc == 0
+        - app_base_dir_dataset.stdout != ""
 
   when: app_dir_type == 'try_zfs_dataset'

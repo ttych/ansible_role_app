@@ -1,0 +1,11 @@
+---
+
+- name: add authorized_keys for "{{ user }}"
+  authorized_key:
+    user: "{{ user }}"
+    state: present
+    key: "{{ key }}"
+  when: key
+  loop: "{{ keys }}"
+  loop_control:
+    loop_var: key

@@ -6,9 +6,11 @@
 
 - block:
 
-    - include: context.yml
+    - include_tasks: context.yml
 
-    - include: mandatory.yml
+    - include_tasks: context_service.yml      
+
+    - include_tasks: mandatory.yml
 
     - include: app_dir.yml
 
@@ -18,11 +20,11 @@
 
     - include: app_workspace.yml
 
-    - include: app_db.yml
+    # - include: app_db.yml
 
-    - include: app_nginx.yml
+    # - include: app_nginx.yml
 
-    - include: app_service.yml
+    # - include: app_service.yml
 
   when: want_app
 
