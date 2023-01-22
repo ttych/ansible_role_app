@@ -9,7 +9,7 @@ upstream {{ upstream.name }} {{ upstream.name_options|d('') }} {
 }
 {% endfor %}
 
-limit_req_zone $binary_remote_addr zone={{ app_name_full }}_limit:10m rate=200r/s
+limit_req_zone $binary_remote_addr zone={{ app_name_full }}_limit:10m rate=200r/s;
 
 server {
   {% for listen in app_nginx_listens|d([80]) %}
