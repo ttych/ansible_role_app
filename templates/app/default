@@ -1,0 +1,56 @@
+#!/bin/sh
+
+{% if app_user_run_want %}
+APP_RUN_USER="{{ app_user_run }}"
+{% else %}
+APP_RUN_USER="{{ app_user }}"
+{% endif %}
+ME="$(whoami)"
+
+start()
+{
+    start_fg &
+}
+
+start_fg()
+{
+    sleep 600
+}
+
+stop()
+{
+    :
+}
+
+restart()
+{
+    stop &&
+        sleep 1 &&
+        start
+}
+
+reload()
+{
+    :
+}
+
+
+run()
+{
+    case $1 in
+        start|start_fg|stop|restart|reload)
+            action="$1"
+            shift
+            $action "$@"
+            ;;
+        *)
+            echo >&2 "unsupported \"$1\" action"
+            ;;
+    esac
+}
+
+if [ "$ME" = "$APP_RUN_USER" ]; then
+    run "$@"
+else
+    exec sudo -u "$APP_RUN_USER" -- $0 "$@"
+fi

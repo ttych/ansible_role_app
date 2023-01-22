@@ -1,0 +1,152 @@
+#!/bin/sh
+
+APP_DIR="{{ app_app_dir }}"
+APP_CURRENT_DIR="{{ app_current_dir }}"
+APP_SHARED_DIR="{{ app_shared_dir }}"
+APP_PORT="{{ app_user_id | d(1234) }}"
+APP_PIDFILE="{{ app_run_pidfile }}"
+APP_SOCKET="{{ app_run_socket }}"
+APP_RESTART_DELAY="{{ app_run_restart_delay }}"
+APP_RBENV_DIR="{{ app_rbenv_dir }}"
+APP_RVM_DIR="{{ app_rvm_dir }}"
+APP_BACKGROUND=0
+{% if app_user_run_want %}
+APP_RUN_USER="{{ app_user_run }}"
+{% else %}
+APP_RUN_USER="{{ app_user }}"
+{% endif %}
+ME="$(whoami)"
+
+
+cd_current()
+{
+    cd "$APP_CURRENT_DIR" || return 1
+}
+
+load_env()
+{
+    load_rbenv || load_rvm
+
+    if [ -r "$APP_CURRENT_DIR/config/env.sh" ]; then
+        . "$APP_CURRENT_DIR/config/env.sh"
+    fi
+}
+
+load_rbenv()
+{
+    ( cd "$APP_RBENV_DIR" || return 1 )
+
+    export PATH="$APP_RBENV_DIR/bin:$PATH"
+    export RBENV_ROOT="$APP_RBENV_DIR"
+    eval "$(rbenv init -)"
+}
+
+load_rvm()
+{
+    ( cd "$APP_RVM_DIR" || return 1 )
+
+    return 1
+}
+
+start()
+{
+    APP_BACKGROUND=1
+    start_app
+}
+
+start_fg()
+{
+    APP_BACKGROUND=0
+    start_app
+}
+
+start_app()
+{
+    cd_current || return 1
+    pwd
+    load_env
+
+    if [ -n "$APP_SERVER" ]; then
+        "start_$APP_SERVER"
+    else
+        start_rails
+    fi
+}
+
+start_rails()
+{
+    if [ $APP_BACKGROUND = 0 ]; then
+        background_flag="--no-daemon"
+    else
+        background_flag="--daemon"
+    fi
+
+    bundle exec rails server \
+           "$background_flag" \
+           ${APP_SERVER_CONFIG:+--config "$APP_SERVER_CONFIG"} \
+           --environment "${RAILS_ENV:-production}" \
+           --pid "$APP_PIDFILE" \
+           ${APP_SERVER:+--using "$APP_SERVER"}
+}
+
+start_puma()
+{
+    bundle exec puma \
+           ${APP_SERVER_CONFIG:+--config "$APP_SERVER_CONFIG"} \
+           --dir "$APP_DIR" \
+           --environment "${RAILS_ENV:-production}" \
+           --pidfile "$APP_PIDFILE"
+
+           # --silent
+}
+
+start_unicorn()
+{
+    bundle exec unicorn \
+           -D \
+           -c /home/rails-demo/app/shared/config/unicorn.conf.rb \
+           -E "${RAILS_ENV:-production}"
+}
+
+stop()
+{
+    if [ -r "$APP_PIDFILE" ]; then
+        echo "stopping ..."
+        pkill -F "$APP_PIDFILE"
+    fi
+}
+
+restart()
+{
+    stop &&
+        sleep $APP_RESTART_DELAY &&
+        start
+}
+
+reload()
+{
+    if [ -r "$APP_PIDFILE" ]; then
+        echo "reloading ..."
+        pkill -HUP -F "$APP_PIDFILE"
+    fi
+}
+
+run ()
+{
+    case $1 in
+        start|start_fg|stop|restart|reload)
+            action="$1"
+            shift
+            $action "$@"
+            ;;
+        *)
+            echo >&2 "unsupported \"$1\" action"
+            ;;
+    esac
+}
+
+if [ "$ME" = "$APP_RUN_USER" ]; then
+    run "$@"
+else
+    exec sudo -u "$APP_RUN_USER" -- $0 "$@"
+fi

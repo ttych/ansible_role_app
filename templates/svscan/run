@@ -10,4 +10,4 @@ exec setuidgid \
      "{{ app_user }}" \
      env HOME="{{ app_user_homedir }}" \
 {% endif %}
-     "{{ app_service_merged.script }}" {{ app_service_merged.script_args|d('') }}
+     "{{ app_scripts_main }}" {{ app_scripts_main_start_arg|d('') }}

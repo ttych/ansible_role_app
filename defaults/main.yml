@@ -26,6 +26,7 @@ app_user_run_homedir: "{{ app_dir }}/{{ app_user_run }}"
 app_user_run_want: yes
 
 app_app_dir: "{{ app_dir }}/{{ app_name }}"
+app_app_scripts_dir: "{{ app_app_dir }}/scripts"
 
 app_directories:
   - path: "{{ app_dir }}"
@@ -52,6 +53,92 @@ app_directories:
     owner: "{{ app_user }}"
     group: "{{ app_group }}"
     mode: "{{ app_app_dir_right | d('0755') }}"
+  - path: "{{ app_scripts_dir }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+  - src: "{{ app_scripts_dir }}"
+    dest: "{{ app_app_scripts_dir }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    state: link
+
+app_shared_dir: "{{ app_app_dir }}/shared"
+app_current_dir: "{{ app_app_dir }}/current"
+app_run_tmp: "{{ app_current_dir }}/tmp"
+app_run_pidfile: "{{ app_run_tmp }}/pids/server.pid"
+app_run_socket: "{{ app_run_tmp }}/sockets/server.sock"
+# app_run_pidfile: "{{ app_shared_dir }}/tmp/server.pid"
+# app_run_socket: "{{ app_shared_dir }}/tmp/server.sock"
+app_run_restart_delay: 1
+
+app_nginx: no
+app_nginx_dir: "{{ app_dir }}/nginx"
+app_nginx_workspace :
+  - path: "{{ app_nginx_dir }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "{{ app_nginx_dir_right | d('0755') }}"
+app_nginx_conf_dir: "{{ nginx_base_dir }}/etc"
+app_nginx_available_dir: "{{ app_nginx_conf_dir }}/sites-available"
+app_nginx_enabled_dir: "{{ app_nginx_conf_dir }}/sites-enabled"
+app_nginx_type: proxy_app
+
+app_server_name: "{{ app_name }}"
+app_server_name_full: "{{ app_name }}.local"
+app_nginx_upstreams:
+  - name: "{{ app_name_full }}"
+    servers:
+      - socket: "unix:{{ app_run_socket }}"
+        options:
+          - fail_timeout=0
+app_nginx_listens:
+  - 80
+app_nginx_server_names:
+  - "{{ app_server_name }}"
+  - "{{ app_server_name_full }}"
+app_nginx_root: "{{ app_app_dir }}/current/public"
+app_nginx_locations:
+  - path: "^~ /assets/"
+    # path: "/assets/"
+    options:
+      - "gzip_static on"
+      - "expires max"
+      # - "expires 1M"
+      - "add_header Cache-Control public"
+  - path: /
+    options:
+      - "try_files $uri/index.html $uri @to_{{ app_name_full }} =404"
+      - "limit_req  zone={{ app_name_full }}_limit burst=10 nodelay"
+  - path: "@to_{{ app_name_full }}"
+    options:
+      - "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for"
+      - "proxy_set_header X-Forwarded-Proto $scheme"
+      - "proxy_set_header Host $http_host"
+      - "proxy_redirect off"
+      - "proxy_pass http://{{ app_name_full }}"
+app_nginx_client_max_body_size: 1G
+app_nginx_options:
+  - "limit_req_status 429"
+app_nginx_server_name_aliases: []
+
+app_nginx_script_reload: "{{ nginx_base_dir }}/scripts/reload.sh"
+app_nginx_script_reload_arg: ""
+app_nginx_pidfile: "{{ nginx_base_dir }}/work/nginx.pid"
+app_nginx_svscan: "{{ nginx_base_dir }}/svscan"
+
+app_scripts_dir: "{{ app_dir }}/scripts"
+app_scripts_main: "{{ app_scripts_dir }}/{{ app_name }}.sh"
+app_scripts_app_link: "{{ app_scripts_dir }}/app.sh"
+app_scripts_main_start_arg: start_fg
+app_scripts_template: default
+
+app_rails: no
+app_rbenv_dir: "{{ app_user_homedir }}/.rbenv"
+app_rvm_dir: "{{ app_user_homedir }}/.rvm"
+
+app_service_type: system
+app_service_logger_user: logger
 
 # app_postgresql_owner: postgres
 
@@ -62,13 +149,11 @@ app_directories:
 #   logger_user: logger
 # app_service_merged: "{{ app_service_default | combine(app_service|d({})) }}"
 
-# app_daemontools_dir: "{{ app_dir }}/svscan"
-# app_daemontools_directories_template:
-#   - { path: "", owner: root, group: "{{ root_group }}", mode: "0755" }
-#   - { path: "/log", owner: root, group: "{{ root_group }}", mode: "0755" }
-#   - { path: "/log/main", owner: "{{ app_service_merged.logger_user }}", group: "{{ root_group }}", mode: "0750" }
-# app_daemontools_scripts_template:
-#   - { path: run, owner: root, group: "{{ root_group }}", mode: "0750" }
-#   - { path: log/run, owner: root, group: "{{ root_group }}", mode: "0750" }
-
-# app_nginx: no
+app_daemontools_dir: "{{ app_dir }}/svscan"
+app_daemontools_directories_template:
+  - { path: "", owner: root, group: "{{ root_group }}", mode: "0755" }
+  - { path: "/log", owner: root, group: "{{ root_group }}", mode: "0755" }
+  - { path: "/log/main", owner: "{{ app_service_logger_user }}", group: "{{ root_group }}", mode: "0750" }
+app_daemontools_scripts_template:
+  - { path: run, owner: root, group: "{{ root_group }}", mode: "0750" }
+  - { path: log/run, owner: root, group: "{{ root_group }}", mode: "0750" }

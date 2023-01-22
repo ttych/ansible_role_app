@@ -6,36 +6,61 @@
         path: "{{ nginx_base_dir }}/{{ item }}"
         state: directory
       loop:
-        - etc
-        - etc/sites-available
-        - etc/sites-enabled
+        - "{{ app_nginx_conf_dir }}"
+        - "{{ app_nginx_available_dir }}"
+        - "{{ app_nginx_enabled_dir }}"
 
-    - name: define application site
+    - name: app nginx workspace
+      file:
+        path: "{{ item.path | d(omit) }}"
+        src: "{{ item.src | d(omit) }}"
+        dest: "{{ item.dest | d(omit) }}"
+        owner: "{{ item.owner | d(app_user) | d(app_default_user) }}"
+        group: "{{ item.group | d(app_group) | d(app_default_group) }}"
+        mode: "{{ item.mode | d(omit) }}"
+        state: "{{ item.state|d('directory') }}"
+      loop: "{{ app_nginx_workspace }}"
+
+    - name: define available nginx application
       template:
-        src: "nginx/app_site"
-        dest: "{{ nginx_base_dir }}/etc/sites-available/app_{{ app_name }}"
+        src: "nginx/{{ app_nginx_type }}"
+        dest: "{{ app_nginx_available_dir }}/{{ app_name_full }}"
         owner: root
-        group: "{{ root_group }}"
+        group: "{{ app_group }}"
         mode: "0644"
       register: t_app_nginx_site_available
 
-    - name: enable application site
+    - name: enable nginx application
       file:
-        src: "{{ nginx_base_dir }}/etc/sites-available/app_{{ app_name }}"
-        dest: "{{ nginx_base_dir }}/etc/sites-enabled/app_{{ app_name }}"
+        src: "{{ app_nginx_available_dir }}/{{ app_name_full }}"
+        dest: "{{ app_nginx_enabled_dir }}/{{ app_name_full }}"
         state: link
       register: t_app_nginx_site_enabled
 
-    - name: look for nginx pid
+    - name: look for reload script
       stat:
-        path: "{{ nginx_base_dir }}/work/nginx.pid"
+        path: "{{ app_nginx_script_reload }}"
+      register: t_app_nginx_script_reload
+
+    - name: reload
+      command:
+        cmd: "{{ app_nginx_script_reload }} {{ app_nginx_script_reload_arg|d('') }}"
+      when:
+        - t_app_nginx_script_reload.stat.exists
+        - t_app_nginx_site_available.changed or t_app_nginx_site_enabled.changed
+
+    - name: look for nginx pid file
+      stat:
+        path: "{{ app_nginx_pidfile }}"
       register: t_app_nginx_pidfile
 
     - name: send reload signal
       command: "pkill -HUP -F {{ t_app_nginx_pidfile.stat.path }}"
       when:
         - t_app_nginx_pidfile.stat.exists
-        - t_app_nginx_site_available.changed
-        - t_app_nginx_site_enabled.changed
+        - not t_app_nginx_script_reload.stat.exists
+        - t_app_nginx_site_available.changed or t_app_nginx_site_enabled.changed
 
-  when: app_nginx | d(none)
+  when:
+    - app_nginx is defined and app_nginx
+    - nginx_base_dir is defined and nginx_base_dir

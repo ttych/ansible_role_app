@@ -1,0 +1,8 @@
+---
+
+- block:
+    - set_fact:
+        app_scripts_template: rails
+
+  when:
+    - app_rails is defined and app_rails

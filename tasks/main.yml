@@ -8,23 +8,25 @@
 
     - include_tasks: context.yml
 
-    - include_tasks: context_service.yml      
+    - include_tasks: context_service.yml
 
     - include_tasks: mandatory.yml
 
-    - include: app_dir.yml
+    - include_tasks: app_dir.yml
 
-    - include: app_user.yml
+    - include_tasks: app_user.yml
 
-    - include: app_packages.yml
+    - include_tasks: app_packages.yml
 
-    - include: app_workspace.yml
+    - include_tasks: app_workspace.yml
 
-    # - include: app_db.yml
+    # - include_tasks: app_db.yml
 
-    # - include: app_nginx.yml
+    - include_tasks: app_nginx.yml
 
-    # - include: app_service.yml
+    - include_tasks: app_rails.yml
+
+    - include_tasks: app_service.yml
 
   when: want_app
 

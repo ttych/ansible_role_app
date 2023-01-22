@@ -1,83 +1,83 @@
 ---
 
-# ########## service
+########## script
+- name: check app entrypoint
+  stat:
+    path: "{{ app_scripts_main }}"
+  register: t_app_service_entrypoint
+
+- name: deploy example app entrypoint
+  template:
+    src: "templates/app/{{ app_scripts_template }}"
+    dest: "{{ app_scripts_main }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+  when: not t_app_service_entrypoint.stat.exists
+
 - block:
+    - name: check app link
+      stat:
+        path: "{{ app_scripts_app_link }}"
+      register: t_app_service_app_link
+
+    - name: deploy app link
+      file:
+        src: "{{ app_scripts_main }}"
+        dest: "{{ app_scripts_app_link }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        state: link
+      when: not t_app_service_app_link.stat.exists
+
+  when: app_scripts_main != app_scripts_app_link
 
 
-    # ########## app entrypoint
-    - block:
-        - name: check app entrypoint
-          stat:
-            path: app_service_merged.script
-          register: t_app_service_entrypoint
-
-        - block:
-            - name: deploy example app entrypoint
-              template:
-                src: "templates/app/app.sh"
-                dest: "{{ app_service_merged.script }}"
-                owner: "{{ app_user }}"
-                group: "{{ app_group }}"
-                mode: "0755"
-
-          when: not t_app_service_entrypoint.stat.exists
-
-      when:
-        - app_service_merged.script|d(none)
-
-
-
-    # ########## systemd
-    - block:
-        - debug:
-            msg: "configure systemd service"
-
-      when:
-        - app_service_merged.type|d(none) == 'system'
-        - ansible_service_mgr == 'systemd'
-
-
-
-    # ########## rc.d
-    - block:
-        - debug:
-            msg: "configure rc.d service"
-
-      when:
-        - app_service_merged.type|d(none) == 'system'
-        - ansible_service_mgr == 'bsdinit'
-
-
-
-    # ########## daemontools
-    - block:
-        - name: create daemontools workspaces
-          file:
-            path: "{{ app_daemontools_dir }}/{{ item.path }}"
-            owner: "{{ item.owner }}"
-            group: "{{ item.group }}"
-            mode: "{{ item.mode }}"
-            state: directory
-          loop: "{{ app_daemontools_directories_template }}"
-
-        - name: deploy daemontools run scripts
-          template:
-            src: "svscan/{{ item.path }}"
-            dest: "{{ app_daemontools_dir }}/{{ item.path }}"
-            owner: "{{ item.owner }}"
-            group: "{{ item.group }}"
-            mode: "{{ item.mode }}"
-          loop: "{{ app_daemontools_scripts_template }}"
-
-        - name: supervise (link) daemontools service
-          file:
-            src: "{{ app_daemontools_dir }}"
-            dest: "{{ daemontools_svscan_dir }}/app_{{ app_name }}"
-            state: link
-
-      when:
-        - app_service_merged.type|d(none) == 'daemontools'
-
+########## systemd
+- block:
+    - debug:
+        msg: "configure systemd service"
 
   when:
-    - app_service_merged.type|d(none)
+    - app_service_type == 'system'
+    - ansible_service_mgr == 'systemd'
+
+
+########## rc.d
+- block:
+    - debug:
+        msg: "configure rc.d service"
+
+  when:
+    - app_service_type == 'system'
+    - ansible_service_mgr == 'bsdinit'
+
+
+########## daemontools
+- block:
+    - name: create daemontools workspace
+      file:
+        path: "{{ app_daemontools_dir }}/{{ item.path }}"
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+        state: directory
+      loop: "{{ app_daemontools_directories_template }}"
+
+    - name: deploy daemontools run scripts
+      template:
+        src: "svscan/{{ item.path }}"
+        dest: "{{ app_daemontools_dir }}/{{ item.path }}"
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop: "{{ app_daemontools_scripts_template }}"
+
+    - name: supervise (link) daemontools service
+      file:
+        src: "{{ app_daemontools_dir }}"
+        dest: "{{ daemontools_svscan_dir }}/app_{{ app_name }}"
+        state: link
+
+  when:
+    - app_service_type == 'daemontools'

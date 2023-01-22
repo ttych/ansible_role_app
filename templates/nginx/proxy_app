@@ -1,4 +1,4 @@
-{% for upstream in app_nginx.upstreams|d([]) %}
+{% for upstream in app_nginx_upstreams|d([]) %}
 upstream {{ upstream.name }} {{ upstream.name_options|d('') }} {
   {% for server in upstream.servers %}
   server {{ server.socket }} {{ server.options|d([]) | join(' ') }};
@@ -12,19 +12,20 @@ upstream {{ upstream.name }} {{ upstream.name_options|d('') }} {
 limit_req_zone $binary_remote_addr zone={{ app_name_full }}_limit:10m rate=200r/s
 
 server {
-  {% for listen in app_nginx.listens|d([80]) %}
+  {% for listen in app_nginx_listens|d([80]) %}
     listen {{ listen }};
   {% endfor %}
-    server_name {{ app_nginx.server_names|d(['localhost']) | join(' ') }};
-  {% if app_nginx.root %}
-    root {{ app_nginx.root }};
+    server_name {{ app_nginx_server_names|d(['localhost']) | join(' ') }};
+
+  {% if app_nginx_root %}
+    root {{ app_nginx_root }};
   {% endif %}
 
 #     if ($http_transfer_encoding ~* chunked) {
 #         return 444;
 #     }
 
-  {% for location in app_nginx.locations|d([]) %}
+  {% for location in app_nginx_locations|d([]) %}
     location {{ location.path }} {
       {% for option in location.options | d([]) %}
          {{ option }};
@@ -32,7 +33,7 @@ server {
     }
   {% endfor %}
 
-  {% for option in app_nginx.options|d([]) %}
+  {% for option in app_nginx_options|d([]) %}
     {{ option }};
   {% endfor %}
 
@@ -41,6 +42,14 @@ server {
 
     error_page 500 502 503 504 /500.html;
 
-    client_max_body_size {{ app_nginx.client_max_body_size | d("1G") }};
-    keepalive_timeout {{ app_nginx.keepalive_timeout | d(60) }};
+    client_max_body_size {{ app_nginx_client_max_body_size | d("1G") }};
+    keepalive_timeout {{ app_nginx_keepalive_timeout | d(60) }};
 }
+
+{% for server_name_alias in app_nginx_server_name_aliases|d([]) %}
+server {
+    listen {{ app_nginx_server_listen }};
+    server_name {{ server_name_alias }};
+    return 301 http://{{ app_nginx_server_name }}$request_uri;
+}
+{% endfor %}
